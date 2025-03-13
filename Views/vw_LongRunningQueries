@@ -1,0 +1,15 @@
+CREATE VIEW vw_LongRunningQueries AS
+SELECT 
+    s.session_id,
+    r.status,
+    r.start_time,
+    r.total_elapsed_time / 1000 AS ElapsedTime_Sec,
+    s.login_name,
+    r.command,
+    q.text AS QueryText,
+    s.host_name,
+    s.program_name
+FROM sys.dm_exec_requests r
+JOIN sys.dm_exec_sessions s ON r.session_id = s.session_id
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) q
+WHERE r.total_elapsed_time > 5000;  -- Queries running longer than 5 sec
