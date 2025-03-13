@@ -1,0 +1,14 @@
+CREATE VIEW vw_Deadlocks AS
+SELECT 
+    XEvent.query('(event/data/value/deadlock/process-list)[1]') AS ProcessList,
+    XEvent.query('(event/data/value/deadlock/resource-list)[1]') AS ResourceList,
+    XEvent.query('(event/data/value/deadlock)[1]') AS DeadlockGraph,
+    EventData.value('@timestamp', 'datetime') AS DeadlockTime
+FROM (SELECT CAST(target_data AS XML) AS TargetData
+      FROM sys.dm_xe_session_targets AS t
+      JOIN sys.dm_xe_sessions AS s 
+      ON t.event_session_address = s.address
+      WHERE s.name = 'system_health'
+      AND t.target_name = 'ring_buffer') AS X
+CROSS APPLY TargetData.nodes('//RingBufferTarget/event') AS XEvent(EventData)
+WHERE EventData.value('@name', 'nvarchar(4000)') = 'xml_deadlock_report';
